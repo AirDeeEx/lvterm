@@ -1,0 +1,54 @@
+{
+    "buildType": {
+      "default": "Debug",
+      "description": "Build Type Selection",
+      "choices": {
+        "Debug": {
+          "short": "Debug",
+          "long": "Build with no optimizations and debugging information",
+          "buildType": "Debug"
+        },
+        "Release": {
+          "short": "Release",
+          "long": "Build with optimizations and some debuging information",
+          "buildType": "Release"
+        },
+        "MinSizeRel": {
+          "short": "MinSizeRel",
+          "buildType": "MinSizeRel"
+        }
+      }
+    },
+
+    "use_simulator": {
+        "default": "yes",
+        "choices": {
+            "yes": {
+                "short": "SDL",
+                "settings": {
+                    "USE_SIMULATOR": "ON"
+                }
+            },
+            "no": {
+                "short": "No SDL",
+                "settings": {
+                  "USE_SIMULATOR": "OFF"
+              }
+            }
+        }
+    },
+
+    "linkage": {
+      "default": "static",
+      "choices": {
+        "static": {
+          "short": "Static",
+          "linkage": "static"
+        },
+        "shared": {
+          "short": "Shared",
+          "linkage": "shared"
+        }
+      }
+    }
+  }

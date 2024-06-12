@@ -1,0 +1,12 @@
+[submodule "modules/cargs"]
+	path = modules/cargs
+	url = https://github.com/AirDeeEx/cargs.git
+[submodule "lvgl"]
+	path = lvgl
+	url = https://github.com/lvgl/lvgl.git
+	branch = release/v9.1
+	shallow = true
+[submodule "src/widgets/terminal/libvterm"]
+	path = src/widgets/terminal/libvterm
+	url = https://github.com/AirDeeEx/libvterm
+	branch = cmake
