@@ -11,14 +11,12 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <pthread.h>
-#include "lvgl/lvgl.h"
-#include "lvgl/examples/lv_examples.h"
-#include "lvgl/demos/lv_demos.h"
-#include "lvgl/src/libs/freetype/lv_freetype.h"
+#include <lvgl.h>
 #include <stdio.h>
-#include "./main/src/widgets/terminal/lv_terminal.h"
-#include "main/src/term_io.h"
-#include "main/src/config.h"
+#include "src/widgets/terminal/lv_terminal.h"
+#include "src/term_io.h"
+#include "src/config.h"
+#include "font.h"
 
 /*********************
  *      DEFINES
@@ -161,9 +159,6 @@ lv_obj_t * init_term(lv_obj_t * parent, lv_font_t * font, term_pty_t * pty)
     return term;
 }
 
-
-
-
 extern char** environ;
 
 int main(int argc, char **argv)
@@ -182,13 +177,9 @@ int main(int argc, char **argv)
     printf("Lvgl ver %d.%d\n",LVGL_VERSION_MAJOR,LVGL_VERSION_MINOR);
 
     int res;
-
-
-    lv_font_t * font = lv_freetype_font_create("/tmp/Hack-Regular.ttf",
-                                            LV_FREETYPE_FONT_RENDER_MODE_BITMAP,
-                                            11,
-                                            LV_FREETYPE_FONT_STYLE_NORMAL);
-
+    //lv_font_t * font = &lv_font_unscii_8;
+    lv_font_t * font = font_init("./Hack-Regular.ttf",12);
+    
     if(!font) {
         LV_LOG_WARN("Freetype font create failed. Use default");
         //return -1;
@@ -209,8 +200,6 @@ int main(int argc, char **argv)
 
     if (!conf.pty_only)
     {
-        
-
         char* default_cmd[] = { "/usr/bin/htop", NULL };
         //char* term_envp[] = { NULL };
 
@@ -348,6 +337,7 @@ static lv_display_t * fbdev_init(int32_t w, int32_t h)
 static lv_display_t * hal_init(int32_t w, int32_t h)
 {
 #ifdef USE_SIMULATOR
+
 return sdl_init(w,h);
 #else
 return fbdev_init(w,h);

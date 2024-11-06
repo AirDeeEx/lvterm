@@ -1,9 +1,10 @@
 cmake_minimum_required(VERSION 3.13)
 project(lvgl)
 
-option(LV_USE_FREETYPE "Use freetype lib" ON)
+option(LV_USE_FREETYPE "Use freetype lib" OFF)
 option(USE_SIMULATOR "Use SDL2 simulator" ON)
 option(BUILD_SHARED_LIBS "Build using shared libraries" ON)
+option(STRIP_FUNCTIONS "Remove unused functions" ON)
 
 
 set(CMAKE_C_STANDARD 99)#C99 # lvgl officially support C99 and above
@@ -17,8 +18,25 @@ set(LV_CONF_BUILD_DISABLE_EXAMPLES 1)
 set(LV_CONF_BUILD_DISABLE_DEMOS 1)
 
 add_compile_definitions($<$<BOOL:${USE_SIMULATOR}>:USE_SIMULATOR=1>)
+add_compile_definitions($<$<BOOL:${LV_USE_FREETYPE}>:LV_USE_FREETYPE=1>)
 
 # set(CMAKE_FIND_LIBRARY_SUFFIXES .a)
+
+include(CheckIPOSupported)
+check_ipo_supported(RESULT lto_supported OUTPUT lto_test_out)
+
+if(lto_supported)
+   #set(CMAKE_INTERPROCEDURAL_OPTIMIZATION 1)
+   #message("LTO: supported!")
+else()
+    message(WARNING "LTO: not supported!")
+endif()
+
+if (STRIP_FUNCTIONS)
+    add_compile_options(-fdata-sections -ffunction-sections)
+    add_link_options(-Wl,--gc-sections)
+endif ()
+add_compile_options(-g)
 
 if(USE_SIMULATOR)
     find_package(SDL2 REQUIRED SDL2)
@@ -29,19 +47,27 @@ add_subdirectory(lvgl)
 target_include_directories(lvgl PUBLIC ${PROJECT_SOURCE_DIR} ${SDL2_INCLUDE_DIRS})
 
 
-add_subdirectory(main/src/widgets/terminal)
+add_subdirectory(${CMAKE_SOURCE_DIR}/src/widgets/terminal)
 
 add_executable(main
-    main/src/main.c
-    main/src/term_io.c 
-    main/src/mouse_cursor_icon.c
-    main/src/config.c
+    src/main.c
+    src/term_io.c 
+    src/mouse_cursor_icon.c
+    src/config.c
+    src/font.c
     )
 
 target_compile_definitions(main PRIVATE LV_CONF_INCLUDE_SIMPLE)
 target_include_directories(main PUBLIC)
 message("SDL2_LIBRARIES: ${SDL2_LIBRARIES}")
-target_link_libraries(main lvgl lvgl::thorvg lvgl_terminal ${SDL2_LIBRARIES} m pthread)
+target_link_libraries(main lvgl lvgl_terminal ${SDL2_LIBRARIES} m pthread)
+
+
+#target_compile_options(lvgl PRIVATE -fdata-sections -ffunction-sections)
+#target_link_options(lvgl PRIVATE -Wl,--gc-sections)
+
+#target_compile_options(main PRIVATE -fdata-sections -ffunction-sections)
+#target_link_options(main PRIVATE -Wl,--gc-sections)
 
 
 
@@ -69,6 +95,17 @@ if(LV_USE_FREETYPE)
 
     target_link_libraries(main freetype)
     target_include_directories(lvgl PUBLIC ${FREETYPE_INCLUDE_DIRS})
+    
+    target_include_directories(freetype PRIVATE ${PROJECT_SOURCE_DIR})
+    
+    target_compile_options(freetype PRIVATE
+        -Wno-uninitialized
+    )
+    
+    target_compile_options(freetype PRIVATE -fdata-sections -ffunction-sections)
+    target_link_options(freetype PRIVATE -Wl,--gc-sections)
+    
+    
 endif(LV_USE_FREETYPE)
 
 add_subdirectory(modules/cargs)
@@ -106,19 +143,19 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     # target_link_options(main PRIVATE -static)
 else()
 
-target_compile_options(main PRIVATE
-        -Wno-maybe-uninitialized
-    )
+# target_compile_options(main PRIVATE
+#        -Wno-maybe-uninitialized
+#    )
 
 target_compile_options(vterm PRIVATE
-    -Wno-maybe-uninitialized
+   -Wno-uninitialized
 )
 
 target_compile_options(main PRIVATE -Wno-error)
 
-# if(NOT BUILD_SHARED_LIBS)
-#     target_link_options(main PRIVATE -static)    
-# endif(BUILD_SHARED_LIBS)
+if(NOT BUILD_SHARED_LIBS)
+    target_link_options(main PRIVATE -static)    
+endif(NOT BUILD_SHARED_LIBS)
 
 
 endif()

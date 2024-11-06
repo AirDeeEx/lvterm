@@ -128,7 +128,7 @@
 
     /* 0: use a simple renderer capable of drawing only simple rectangles with gradient, images, texts, and straight lines only
      * 1: use a complex renderer capable of drawing rounded corners, shadow, skew lines, and arcs too */
-    #define LV_DRAW_SW_COMPLEX          0
+    #define LV_DRAW_SW_COMPLEX          1
 
     #if LV_DRAW_SW_COMPLEX == 1
         /*Allow buffering some shadow calculation.
@@ -426,7 +426,7 @@
 #define LV_FONT_SIMSUN_16_CJK            0  /*1000 most common CJK radicals*/
 
 /*Pixel perfect monospace fonts*/
-#define LV_FONT_UNSCII_8  1
+#define LV_FONT_UNSCII_8  0
 #define LV_FONT_UNSCII_16 0
 
 /*Optionally declare custom fonts here.
@@ -499,9 +499,9 @@
 
 #define LV_WIDGETS_HAS_DEFAULT_VALUE  1
 
-#define LV_USE_ANIMIMG    0
+#define LV_USE_ANIMIMG    1
 
-#define LV_USE_ARC        0
+#define LV_USE_ARC        1
 
 #define LV_USE_BAR        1
 
@@ -509,7 +509,7 @@
 
 #define LV_USE_BUTTONMATRIX  1
 
-#define LV_USE_CALENDAR   0
+#define LV_USE_CALENDAR   1
 #if LV_USE_CALENDAR
     #define LV_CALENDAR_WEEK_STARTS_MONDAY 0
     #if LV_CALENDAR_WEEK_STARTS_MONDAY
@@ -523,9 +523,9 @@
     #define LV_USE_CALENDAR_HEADER_DROPDOWN 1
 #endif  /*LV_USE_CALENDAR*/
 
-#define LV_USE_CANVAS     0
+#define LV_USE_CANVAS     1
 
-#define LV_USE_CHART      0
+#define LV_USE_CHART      1
 
 #define LV_USE_CHECKBOX   1
 
@@ -533,7 +533,7 @@
 
 #define LV_USE_IMAGE      1   /*Requires: lv_label*/
 
-#define LV_USE_IMAGEBUTTON     0
+#define LV_USE_IMAGEBUTTON     1
 
 #define LV_USE_KEYBOARD   1
 
@@ -544,31 +544,31 @@
     #define LV_LABEL_WAIT_CHAR_COUNT 3  /*The count of wait chart*/
 #endif
 
-#define LV_USE_LED        0
+#define LV_USE_LED        1
 
-#define LV_USE_LINE       0
+#define LV_USE_LINE       1
 
 #define LV_USE_LIST       1
 
 #define LV_USE_MENU       1
 
-#define LV_USE_MSGBOX     0
+#define LV_USE_MSGBOX     1
 
-#define LV_USE_ROLLER     0   /*Requires: lv_label*/
+#define LV_USE_ROLLER     1   /*Requires: lv_label*/
 
-#define LV_USE_SCALE      0
+#define LV_USE_SCALE      1
 
 #define LV_USE_SLIDER     1   /*Requires: lv_bar*/
 
-#define LV_USE_SPAN       0
+#define LV_USE_SPAN       1
 #if LV_USE_SPAN
     /*A line text can contain maximum num of span descriptor */
     #define LV_SPAN_SNIPPET_STACK_SIZE 64
 #endif
 
-#define LV_USE_SPINBOX    0
+#define LV_USE_SPINBOX    1
 
-#define LV_USE_SPINNER    0
+#define LV_USE_SPINNER    1
 
 #define LV_USE_SWITCH     1
 
@@ -579,11 +579,11 @@
 
 #define LV_USE_TABLE      1
 
-#define LV_USE_TABVIEW    0
+#define LV_USE_TABVIEW    1
 
-#define LV_USE_TILEVIEW   0
+#define LV_USE_TILEVIEW   1
 
-#define LV_USE_WIN        0
+#define LV_USE_WIN        1
 
 /*==================
  * THEMES
@@ -634,10 +634,10 @@
 #endif
 
 /*API for open, read, etc*/
-#define LV_USE_FS_POSIX 1
+#define LV_USE_FS_POSIX 0
 #if LV_USE_FS_POSIX
-    #define LV_FS_POSIX_LETTER 'A'     /*Set an upper cased letter on which the drive will accessible (e.g. 'A')*/
-    #define LV_FS_POSIX_PATH "/"         /*Set the working directory. File/directory paths will be appended to it.*/
+    #define LV_FS_POSIX_LETTER '\0'     /*Set an upper cased letter on which the drive will accessible (e.g. 'A')*/
+    #define LV_FS_POSIX_PATH ""         /*Set the working directory. File/directory paths will be appended to it.*/
     #define LV_FS_POSIX_CACHE_SIZE 0    /*>0 to cache this number of bytes in lv_fs_read()*/
 #endif
 
@@ -706,7 +706,7 @@
 #define LV_USE_BARCODE 0
 
 /*FreeType library*/
-//#define LV_USE_FREETYPE 1
+#define LV_USE_FREETYPE 1
 #if LV_USE_FREETYPE
     /*Let FreeType to use LVGL memory and file porting*/
     #define LV_FREETYPE_USE_LVGL_PORT 0
@@ -717,10 +717,10 @@
 #endif
 
 /* Built-in TTF decoder */
-#define LV_USE_TINY_TTF 1
+#define LV_USE_TINY_TTF 0
 #if LV_USE_TINY_TTF
     /* Enable loading TTF data from files */
-    #define LV_TINY_TTF_FILE_SUPPORT 1
+    #define LV_TINY_TTF_FILE_SUPPORT 0
 #endif
 
 /*Rlottie library*/
