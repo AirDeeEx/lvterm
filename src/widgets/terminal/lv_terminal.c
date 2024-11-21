@@ -142,7 +142,7 @@ void lv_terminal_get_font_max_bitmap(lv_obj_t * obj, uint16_t * max_width, uint1
     *max_width = lv_font_get_glyph_width(term->font, WIDEST_LETTER, 0);
     *max_height = lv_font_get_line_height(term->font);
 
-    LV_LOG_USER("max_w=%d", *max_width);
+    LV_LOG_TRACE("max_w=%d", *max_width);
 }
 
 union utf8_letter
@@ -229,8 +229,8 @@ static void lv_terminal_constructor(const lv_obj_class_t * class_p, lv_obj_t * o
 {
     LV_UNUSED(class_p);
     LV_TRACE_OBJ_CREATE("begin");
-    printf("term constructor\n");
-    printf("cell sizeof: %ld\n",sizeof(lv_term_cell_t));
+    LV_LOG_TRACE("term constructor\n");
+    LV_LOG_TRACE("cell sizeof: %ld\n",sizeof(lv_term_cell_t));
 
     _lv_terminal_t * term = (_lv_terminal_t *)obj;
 

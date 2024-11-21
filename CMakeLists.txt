@@ -55,10 +55,12 @@ add_executable(main
     src/mouse_cursor_icon.c
     src/config.c
     src/font.c
+    src/log.c
+    drivers/display/display.c
     )
 
 target_compile_definitions(main PRIVATE LV_CONF_INCLUDE_SIMPLE)
-target_include_directories(main PUBLIC)
+target_include_directories(main PUBLIC drivers/ PRIVATE src/)
 message("SDL2_LIBRARIES: ${SDL2_LIBRARIES}")
 target_link_libraries(main lvgl lvgl_terminal ${SDL2_LIBRARIES} m pthread)
 

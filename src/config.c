@@ -31,6 +31,20 @@ static struct cag_option options[] = {
         .description = "Cell opacity"
     },
     {
+        .identifier = 'q',
+        .access_letters = "q",
+        .access_name = "quiet",
+        .value_name = "VALUE",
+        .description = "Run without output"
+    },
+    {
+        .identifier = 'f',
+        .access_letters = "f",
+        .access_name = NULL,
+        .value_name = "VALUE",
+        .description = "Read from file"
+    },
+    {
         .identifier = 'h',
         .access_letters = "h",
         .access_name = "help",
@@ -47,7 +61,9 @@ void config_args_parse(term_config_t * conf, int argc, char **argv)
 
 
     conf->command_argv = NULL;
+    conf->file_path = NULL;
     conf->pty_only = false;
+    conf->quiet = false;
 
     cag_option_context context;
     cag_option_init(&context, options, CAG_ARRAY_SIZE(options), argc, argv);
@@ -55,6 +71,12 @@ void config_args_parse(term_config_t * conf, int argc, char **argv)
         switch (cag_option_get_identifier(&context)) {
         case 'p':
             conf->pty_only = true;
+            break;
+        case 'q':
+            conf->quiet = true;
+            break;
+        case 'f':
+            conf->file_path = cag_option_get_value(&context);
             break;
         case 'o':
             value = cag_option_get_value(&context);
@@ -75,7 +97,7 @@ void config_args_parse(term_config_t * conf, int argc, char **argv)
     param_index = cag_option_get_index(&context);
     additional_param_count = argc - param_index;
 
-    printf("additional parameter count: %d\n", additional_param_count);
+    LV_LOG_TRACE("additional parameter count: %d\n", additional_param_count);
 
     // +1 for NULL at end
     conf->command_argv = lv_malloc_zeroed(sizeof(char*) * (additional_param_count + 1));
@@ -83,7 +105,7 @@ void config_args_parse(term_config_t * conf, int argc, char **argv)
 
     for (; param_index < argc; ++param_index)
     {
-        printf("additional parameter: %s\n", argv[param_index]);
+        LV_LOG_TRACE("additional parameter: %s\n", argv[param_index]);
         conf->command_argv[additional_param_index] = argv[param_index];
         additional_param_index++;
     }

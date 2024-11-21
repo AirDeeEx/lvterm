@@ -17,108 +17,108 @@
 #include "src/term_io.h"
 #include "src/config.h"
 #include "font.h"
-
-/*********************
- *      DEFINES
- *********************/
-
-/**********************
- *      TYPEDEFS
- **********************/
-
-/**********************
- *  STATIC PROTOTYPES
- **********************/
-static lv_display_t * hal_init(int32_t w, int32_t h);
-
-/**********************
- *  STATIC VARIABLES
- **********************/
-
-/**********************
- *      MACROS
- **********************/
-
-/**********************
- *   GLOBAL FUNCTIONS
- **********************/
-
-/*********************
- *      DEFINES
- *********************/
-
-/**********************
- *      TYPEDEFS
- **********************/
-
-/**********************
- *      VARIABLES
- **********************/
-
-/**********************
- *  STATIC PROTOTYPES
- **********************/
-
-/**********************
- *   GLOBAL FUNCTIONS
- **********************/    
-
-static void terminal_event_handler(lv_event_t * e)
-{
-    lv_event_code_t code = lv_event_get_code(e);
-    lv_obj_t * term = (lv_obj_t *)lv_event_get_param(e);
-    term_pty_t * pty = (term_pty_t *)lv_event_get_user_data(e);
-
-    if(code == lv_terminal_resize_event_id())
-    {
-        uint16_t cols = lv_terminal_get_cols(term);
-        uint16_t rows = lv_terminal_get_rows(term);
-
-        LV_LOG_USER("Resize event: rows=%d, cols=%d", rows, cols);
-        term_set_size(pty, cols, rows);
-    }
-    else if(code == lv_terminal_reset_event_id())
-    {
-        LV_LOG_USER("Reset event!");
-        term_notify_resize(pty);
-    }
-    else if(code == LV_EVENT_CLICKED) {
-        LV_LOG_USER("Clicked");
-        lv_terminal_clear(term);
-    }
-}
+#include <term_hal.h>
+#include <log.h>
+#include <fcntl.h>
+ #include <sys/types.h>
+#include <sys/stat.h>
 
 typedef struct {
     term_pty_t * pty;
     lv_obj_t * term;
-} term_reader_data_t;
+} term_event_data_t;
 
-void my_timer(lv_timer_t * timer)
+typedef struct {
+    term_pty_t * pty;
+    lv_obj_t * term;
+} term_pty_event_data_t;
+
+typedef struct {
+    int source_fd;
+    char *buf;
+    lv_obj_t *term;
+    lv_timer_t *timer;
+} term_updater_data_t;
+
+static void terminal_event_handler(lv_event_t * e)
+{
+    lv_event_code_t code = lv_event_get_code(e);
+    term_event_data_t * term_event_data = (term_event_data_t *)lv_event_get_user_data(e);
+
+    lv_obj_t * term = term_event_data->term;
+    term_pty_t * pty = term_event_data->pty;
+
+    if(code == LV_EVENT_CLICKED) {
+        LV_LOG_INFO("Clicked");
+        lv_terminal_clear(term);
+    }
+}
+
+static void terminal_pty_event_handler(lv_event_t * e) //TODO: sptil into separate
+{
+    lv_event_code_t code = lv_event_get_code(e);
+    term_event_data_t * term_event_data = (term_event_data_t *)lv_event_get_user_data(e);
+
+    lv_obj_t * term = term_event_data->term;
+    term_pty_t * pty = term_event_data->pty;
+
+    if(code == lv_terminal_resize_event_id())
+    {
+        if (pty)
+        {
+            uint16_t cols = lv_terminal_get_cols(term);
+            uint16_t rows = lv_terminal_get_rows(term);
+
+            LV_LOG_INFO("Resize event: rows=%d, cols=%d", rows, cols);
+            term_set_size(pty, cols, rows);
+        } else {
+            LV_LOG_INFO("Resize event: ignored (not pty)");
+        }
+        
+    }
+    else if(code == lv_terminal_reset_event_id())
+    {
+        if (pty)
+        {
+            LV_LOG_INFO("Reset event!");
+            term_notify_resize(pty);
+        } else {
+             LV_LOG_INFO("Reset event: ignored (not pty)");
+        }
+    }
+}
+
+void term_update_timer(lv_timer_t * timer)
 {
     /*Use the user_data*/
-    term_reader_data_t * data = timer->user_data;
+    term_updater_data_t * data = timer->user_data;
     //LV_LOG_USER("my_timer called with pty: %s", data->pty->slave_path);
 
-    uint32_t debug_char[2];
-    debug_char[1] = '\0';
-
-    int nread = term_readptym(data->pty);
+    //memset(data->buf,'\0', BUFFSIZE); //TODO: dynamic buffer size
+    int nread = read(data->source_fd, data->buf, BUFFSIZE);
 
     if (nread != -1)
     {
-        LV_LOG_USER("read: %d",nread);
-        lv_terminal_parse(data->term, data->pty->ptybuf, nread);
+        LV_LOG_INFO("term_update: read: %d", nread);
+        lv_terminal_parse(data->term, data->buf, nread);
     }else{
         //LV_LOG_USER("empty read");
     }
 }
+
+
 
 lv_obj_t * init_term(lv_obj_t * parent, lv_font_t * font, term_pty_t * pty)
 {
     int res = -1;
 
     lv_obj_t * term = lv_terminal_create(parent);
-    lv_obj_add_event_cb(term, terminal_event_handler, LV_EVENT_ALL, pty);
+
+    term_event_data_t event_data;
+    event_data.pty = pty; //May be NULL, it's fine
+    event_data.term = term;
+
+    lv_obj_add_event_cb(term, terminal_event_handler, LV_EVENT_ALL, &event_data);
 
     int32_t term_w = lv_pct(100);
     int32_t term_h = lv_pct(100);
@@ -160,83 +160,155 @@ lv_obj_t * init_term(lv_obj_t * parent, lv_font_t * font, term_pty_t * pty)
 }
 
 extern char** environ;
+static term_config_t g_conf;
+
+//Declare as global for event handlers (stack-use-after-scope fix) //TODO: migrate to linux specific file
+static term_pty_t g_term_pty;
+static term_pty_event_data_t g_pty_event_data;
+int source_file_fd;
+
+void process_from_pty(term_updater_data_t *updater_data)
+{
+    int res;
+    uint16_t cols, rows;
+
+    //Open linux pty and set as reader source
+    res = term_openpty(&g_term_pty);
+    updater_data->source_fd = g_term_pty.master_fd;
+
+    //Setup handlers for pty resize
+    g_pty_event_data.pty = &g_term_pty;
+    g_pty_event_data.term = updater_data->term;
+    lv_obj_add_event_cb(updater_data->term, terminal_pty_event_handler, LV_EVENT_ALL, &g_pty_event_data);
+
+    //Apply terminal size to pty first time (terminal_pty_event_handler do it next time)
+    cols = lv_terminal_get_cols(updater_data->term);
+    rows = lv_terminal_get_rows(updater_data->term);
+    term_set_size(&g_term_pty, cols, rows);
+
+    LV_LOG_WARN("Pty open: %s, res=%d", g_term_pty.slave_path, res);
+
+    if (!g_conf.pty_only)
+    {
+        char* default_cmd[] = { "/usr/bin/htop", NULL };
+        char** term_cmd = NULL;
+
+        //char* term_envp[] = { NULL };
+
+        LV_LOG_INFO("Try Fork");
+
+        if (g_conf.command_argc > 0)
+        {
+            term_cmd = g_conf.command_argv;
+        }
+        else
+        {
+            LV_LOG_INFO("Use default cmd!");
+            term_cmd = default_cmd;
+        }
+        
+        term_process(&g_term_pty, term_cmd, environ); //maybe use-after-scope
+    } else {
+        char ansi_escape[50];
+        char* text = "Pty ready!";
+        int slen;
+
+        printf("%s\n", g_term_pty.slave_path); //TODO better log system
+
+        // lv_memset(ansi_escape, 0, sizeof(char) * 50);
+
+        uint16_t half_col = cols/2;
+        uint16_t half_row = rows/2;
+
+        LV_LOG_INFO("col,row: %d, %d", half_col, half_row);
+
+        slen = lv_strlen(text);
+
+        sprintf(ansi_escape, "\e[2J\e[%d;%dH%s", half_row, half_col - slen, text);
+
+        lv_terminal_puts(updater_data->term, ansi_escape);
+    }
+    
+    updater_data->timer = lv_timer_create(term_update_timer, 100,  updater_data);
+}
+
+void process_from_file(term_updater_data_t *updater_data)
+{
+    struct stat file_status;
+
+    source_file_fd = open(g_conf.file_path, O_RDONLY | O_NONBLOCK);
+    if (source_file_fd==-1)
+    {
+        LV_LOG_ERROR("open() error");
+        exit(EXIT_FAILURE);
+    }
+
+    if(fstat(source_file_fd, &file_status)==-1)
+    {
+        LV_LOG_ERROR("fstat: error");
+        close(source_file_fd);
+        exit(EXIT_FAILURE);
+    }
+
+    if(S_ISDIR(file_status.st_mode))
+    {
+        LV_LOG_ERROR("%s in a directory!\n", g_conf.file_path);
+        close(source_file_fd);
+        exit(EXIT_FAILURE);
+    }
+
+    updater_data->source_fd = source_file_fd;
+
+    updater_data->timer = lv_timer_create(term_update_timer, 100,  updater_data);
+}
 
 int main(int argc, char **argv)
 {
-    /*Initialize LVGL*/
+    lv_font_t * font;
+    lv_obj_t * term;
+
+    term_updater_data_t updater_data;
+    char term_buf[BUFFSIZE];
+
     lv_init();
 
-    term_config_t conf;
-    config_args_parse(&conf, argc, argv);
-    printf("term cmd: %s\n", conf.command_argv[LV_MAX(conf.command_argc-1, 0)]);
+    config_args_parse(&g_conf, argc, argv);
+    LV_LOG_INFO("term cmd: %s\n", conf.command_argv[LV_MAX(conf.command_argc-1, 0)]);
+
+    if (g_conf.quiet)
+    {
+        term_set_log_level(LV_LOG_LEVEL_USER);
+    }
+    
+
+    lv_log_register_print_cb(term_lv_log_callback);
     
 
     //hal_init(204, 180);
     hal_init(198, 171);
 
-    printf("Lvgl ver %d.%d\n",LVGL_VERSION_MAJOR,LVGL_VERSION_MINOR);
+    LV_LOG_INFO("Lvgl ver %d.%d\n",LVGL_VERSION_MAJOR,LVGL_VERSION_MINOR);
 
-    int res;
+    
     //lv_font_t * font = &lv_font_unscii_8;
-    lv_font_t * font = font_init("./Hack-Regular.ttf",12);
+    font = font_init("./Hack-Regular.ttf",12);
     
     if(!font) {
         LV_LOG_WARN("Freetype font create failed. Use default");
         //return -1;
     }
 
-    term_pty_t term_pty;
-    res = term_openpty(&term_pty);
-    LV_LOG_WARN("Pty open: %s, res=%d", term_pty.slave_path, res);
 
+    term = init_term(lv_screen_active(), font, NULL);
 
-    lv_obj_t * term = init_term(lv_screen_active(), font, &term_pty);
+    updater_data.term = term;
+    updater_data.buf = term_buf;
 
-    term_reader_data_t reader_data;
-    reader_data.pty = &term_pty;
-    reader_data.term = term;
-
-    lv_timer_t * timer = lv_timer_create(my_timer, 100,  &reader_data);
-
-    if (!conf.pty_only)
+    if (g_conf.file_path)
     {
-        char* default_cmd[] = { "/usr/bin/htop", NULL };
-        //char* term_envp[] = { NULL };
-
-        LV_LOG_USER("Try Fork");
-
-        char** term_cmd = NULL;
-        if (conf.command_argc > 0)
-        {
-            term_cmd = conf.command_argv;
-        }
-        else
-        {
-            LV_LOG_USER("Use default cmd!");
-            term_cmd = default_cmd;
-        }
-        
-        term_process(&term_pty, term_cmd, environ);
-    }else{
-        char ansi_escape[50];
-        char* text = "Pty ready!";
-        int slen;
-        // lv_memset(ansi_escape, 0, sizeof(char) * 50);
-
-        uint16_t col = lv_terminal_get_cols(term)/2;
-        uint16_t row = lv_terminal_get_rows(term)/2;
-
-        LV_LOG_USER("col,row: %d, %d", col, row);
-
-        slen = lv_strlen(text);
-
-        sprintf(ansi_escape, "\e[2J\e[%d;%dH%s", row, col - slen, text);
-        
-
-        lv_terminal_puts(term, ansi_escape);
-        // LV_LOG_USER("%s", ansi_escape);
-        // lv_terminal_parse(term, ansi_escape, 49);
-        // lv_terminal_puts(term, "test");
+        process_from_file(&updater_data);
+    } else {
+        process_from_pty(&updater_data);
     }
 
     while(1) {
@@ -248,100 +320,4 @@ int main(int argc, char **argv)
     }
 
     return 0;
-}
-
-/**********************
- *   STATIC FUNCTIONS
- **********************/
-#if USE_SIMULATOR
-static lv_display_t * sdl_init(int32_t w, int32_t h)
-{
-lv_group_set_default(lv_group_create());
-
-lv_display_t * disp = lv_sdl_window_create(w, h);
-
-lv_indev_t * mouse = lv_sdl_mouse_create();
-lv_indev_set_group(mouse, lv_group_get_default());
-lv_indev_set_display(mouse, disp);
-lv_display_set_default(disp);
-
-LV_IMAGE_DECLARE(mouse_cursor_icon); /*Declare the image file.*/
-lv_obj_t * cursor_obj;
-cursor_obj = lv_image_create(lv_screen_active()); /*Create an image object for the cursor */
-lv_image_set_src(cursor_obj, &mouse_cursor_icon);           /*Set the image source*/
-lv_indev_set_cursor(mouse, cursor_obj);             /*Connect the image  object to the driver*/
-
-lv_indev_t * mousewheel = lv_sdl_mousewheel_create();
-lv_indev_set_display(mousewheel, disp);
-lv_indev_set_group(mousewheel, lv_group_get_default());
-
-lv_indev_t * kb = lv_sdl_keyboard_create();
-lv_indev_set_display(kb, disp);
-lv_indev_set_group(kb, lv_group_get_default());
-//lv_indev_add_event_cb(kb,kb_callback,LV_EVENT_ALL, NULL);
-return disp;
-}
-#else
-static lv_display_t * fbdev_init(int32_t w, int32_t h)
-{
-    int res = 0;
-    uint32_t offset_x, offset_y, x_max, y_max;
-
-    lv_display_t * disp = lv_linux_fbdev_create();
-    lv_linux_fbdev_set_file(disp, "/dev/fb0");
-
-    // offset_x = 17;
-    // offset_y = 130;
-
-    // x_max = w;
-    // y_max = h;
-
-    x_max = lv_disp_get_hor_res(disp);
-    y_max = lv_disp_get_ver_res(disp);
-    offset_x = 0;
-    offset_y = 0;
-
-    char* fb_geometry_env = getenv("FB_GEOMETRY");
-    LV_LOG_WARN("FB_GEOMETRY: %s", fb_geometry_env);
-    if (fb_geometry_env)
-    {
-        res = sscanf(fb_geometry_env, "%dx%d+%d+%d", &x_max, &y_max, &offset_x, & offset_y);
-        if (res < 4)
-        {
-            LV_LOG_ERROR("sscanf err: %d", res);
-        }
-        
-    }
-    else
-    {
-        LV_LOG_WARN("DEF: %dx%d+%d+%d", x_max, y_max, offset_x, offset_y);
-    }
-
-    lv_display_set_offset(disp, offset_x, offset_y);
-    //lv_display_set_physical_resolution(disp,205,108);
-    //lv_display_set_resolution(disp,208,178);
-    lv_display_set_resolution(disp, x_max, y_max);
-    
-
-    lv_display_set_default(disp);
-
-    lv_display_set_rotation(disp, LV_DISPLAY_ROTATION_180);
-
-    return disp;
-}
-#endif
-/**
- * Initialize the Hardware Abstraction Layer (HAL) for the LVGL graphics
- * library
- */
-static lv_display_t * hal_init(int32_t w, int32_t h)
-{
-#ifdef USE_SIMULATOR
-
-return sdl_init(w,h);
-#else
-return fbdev_init(w,h);
-#endif
-
-
 }
