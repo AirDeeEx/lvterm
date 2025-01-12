@@ -306,7 +306,7 @@ int main(int argc, char **argv)
 
     lv_init();
 #if LV_USE_PROFILER
-    my_profiler_init();
+    //my_profiler_init();
 #endif
 
     config_args_parse(&g_conf, argc, argv);

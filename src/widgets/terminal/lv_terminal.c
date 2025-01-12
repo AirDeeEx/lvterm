@@ -356,8 +356,8 @@ static void draw_cell_char(lv_layer_t * layer,lv_area_t * cell_area, uint32_t le
     char_dsc.font = font;
     char_dsc.color = color;
 
-    lv_font_glyph_dsc_t glyph_metrics;
-    lv_font_get_glyph_dsc(char_dsc.font,&glyph_metrics,letter,letter);
+    // lv_font_glyph_dsc_t glyph_metrics;
+    // lv_font_get_glyph_dsc(char_dsc.font,&glyph_metrics,letter,letter);
 
     //printf("glyph: w=%d,h=%d\n",glyph_metrics.box_w,glyph_metrics.box_h);
     //printf("offset: x=%d,y=%d\n",glyph_metrics.ofs_x,glyph_metrics.ofs_y);

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.13)
-project(lvgl)
+project(lvgl C)
 
 option(LV_USE_FREETYPE "Use freetype lib" OFF)
 option(USE_SIMULATOR "Use SDL2 simulator" ON)
@@ -16,6 +16,7 @@ set(WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
 
 set(LV_CONF_BUILD_DISABLE_EXAMPLES 1)
 set(LV_CONF_BUILD_DISABLE_DEMOS 1)
+set(LV_CONF_BUILD_DISABLE_THORVG_INTERNAL 1)
 
 add_compile_definitions($<$<BOOL:${USE_SIMULATOR}>:USE_SIMULATOR=1>)
 add_compile_definitions($<$<BOOL:${LV_USE_FREETYPE}>:LV_USE_FREETYPE=1>)

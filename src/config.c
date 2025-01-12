@@ -38,11 +38,11 @@ static struct cag_option options[] = {
         .description = "Run without output"
     },
     {
-        .identifier = 'f',
-        .access_letters = "f",
+        .identifier = 's',
+        .access_letters = "fs",
         .access_name = NULL,
         .value_name = "VALUE",
-        .description = "Read from file"
+        .description = "Font size"
     },
     {
         .identifier = 'h',
@@ -64,6 +64,7 @@ void config_args_parse(term_config_t * conf, int argc, char **argv)
     conf->file_path = NULL;
     conf->pty_only = false;
     conf->quiet = false;
+    conf->font_size = 32;
 
     cag_option_context context;
     cag_option_init(&context, options, CAG_ARRAY_SIZE(options), argc, argv);
@@ -74,6 +75,9 @@ void config_args_parse(term_config_t * conf, int argc, char **argv)
             break;
         case 'q':
             conf->quiet = true;
+            break;
+        case 's':
+            conf->font_size = cag_option_get_value(&context);
             break;
         case 'f':
             conf->file_path = cag_option_get_value(&context);

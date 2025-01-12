@@ -13,6 +13,7 @@ typedef struct {
     bool pty_only;
     const char* file_path;
     bool quiet;
+    int font_size;
 } term_config_t;
 
 void config_args_parse(term_config_t * conf, int argc, char **argv);
