@@ -51,9 +51,9 @@ lv_display_t * fbdev_init(int32_t w, int32_t h)
     offset_y = 0;
 
     char* fb_geometry_env = getenv("FB_GEOMETRY");
-    LV_LOG_WARN("FB_GEOMETRY: %s", fb_geometry_env);
     if (fb_geometry_env)
     {
+        LV_LOG_WARN("FB_GEOMETRY: %s", fb_geometry_env);
         res = sscanf(fb_geometry_env, "%dx%d+%d+%d", &x_max, &y_max, &offset_x, & offset_y);
         if (res < 4)
         {

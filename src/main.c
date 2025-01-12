@@ -262,6 +262,40 @@ void process_from_file(term_updater_data_t *updater_data)
     updater_data->timer = lv_timer_create(term_update_timer, 100,  updater_data);
 }
 
+#include <time.h>
+
+#if LV_USE_PROFILER
+
+static FILE *fptr;
+
+static uint32_t my_get_tick_us_cb(void)
+{
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    return ts.tv_sec * 1000000 + ts.tv_nsec / 1000;
+}
+
+static void my_profiler_flush(const char * buf)
+{
+    size_t buf_len = strlen(buf);
+    fwrite(buf, sizeof(char), buf_len, fptr);
+}
+
+void my_profiler_init(void)
+{
+    system("/lvgl_trace.txt");
+    fptr = fopen("/lvgl_trace.txt", "w");
+
+    lv_profiler_builtin_config_t config;
+    lv_profiler_builtin_config_init(&config);
+    config.tick_per_sec = 1000000; /* One second is equal to 1000000 microseconds */
+    config.tick_get_cb = my_get_tick_us_cb;
+    config.flush_cb = my_profiler_flush;
+    lv_profiler_builtin_init(&config);
+}
+#endif
+
+
 int main(int argc, char **argv)
 {
     lv_font_t * font;
@@ -271,6 +305,9 @@ int main(int argc, char **argv)
     char term_buf[BUFFSIZE];
 
     lv_init();
+#if LV_USE_PROFILER
+    my_profiler_init();
+#endif
 
     config_args_parse(&g_conf, argc, argv);
     LV_LOG_INFO("term cmd: %s\n", conf.command_argv[LV_MAX(conf.command_argc-1, 0)]);
@@ -291,7 +328,7 @@ int main(int argc, char **argv)
 
     
     //lv_font_t * font = &lv_font_unscii_8;
-    font = font_init("./Hack-Regular.ttf",12);
+    font = font_init("./Hack-Regular.ttf",32);
     
     if(!font) {
         LV_LOG_WARN("Freetype font create failed. Use default");

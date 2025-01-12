@@ -333,6 +333,17 @@ static void draw_cell_bg(lv_layer_t * layer, lv_area_t * area, lv_color_t color,
 
 static void draw_cell_char(lv_layer_t * layer,lv_area_t * cell_area, uint32_t letter, lv_font_t * font, lv_color_t color)
 {
+    if (letter == 0x0)
+    {
+        //printf("null char return!\n");
+        return;
+    }
+
+    LV_PROFILER_BEGIN_TAG("lv_terminal__draw_cell_char");
+
+    //printf("draw char: %x\n", letter);
+    
+    
     lv_point_t char_point;
     char_point.x = cell_area->x1;
     char_point.y = cell_area->y1;
@@ -352,6 +363,8 @@ static void draw_cell_char(lv_layer_t * layer,lv_area_t * cell_area, uint32_t le
     //printf("offset: x=%d,y=%d\n",glyph_metrics.ofs_x,glyph_metrics.ofs_y);
 
     lv_draw_character(layer,&char_dsc,&char_point,letter);
+
+    LV_PROFILER_END_TAG("lv_terminal__draw_cell_char");
 }
 
 static bool get_cell_area(_lv_terminal_t * term, uint16_t row, uint16_t column, lv_area_t * area, lv_point_t * content_offset, lv_point_t * align_offset)
@@ -400,6 +413,8 @@ static bool get_cell_area(_lv_terminal_t * term, uint16_t row, uint16_t column, 
 
 void draw_term(_lv_terminal_t * term, lv_layer_t * layer)
 {
+    LV_PROFILER_BEGIN_TAG("lv_terminal__draw_term");
+
     VTermScreenCell cell;
     VTermPos pos;
     lv_color_t fg, bg;
@@ -466,7 +481,25 @@ void draw_term(_lv_terminal_t * term, lv_layer_t * layer)
     //LV_LOG_WARN("c_w-g_w=free: %d-%d=%d (align=%d)", content_w,grid_w,free_space_w,align_offset.x);
     //LV_LOG_WARN("content_size: width=%d", content_w);
     //LV_LOG_WARN("align x: left=%d, right=%d", align_offset.x, content_area.x2 - (content_area.x1 + align_offset.x + grid_w));
-    
+
+    bg = lv_color_make(cell.bg.rgb.red, cell.bg.rgb.blue, cell.bg.rgb.green);
+
+    lv_area_t grid_background_area;
+    grid_background_area.x1 = content_offset.x + content_offset.x;
+    grid_background_area.y1 = content_offset.y + content_offset.y;
+    grid_background_area.x2 = content_offset.x + content_offset.x + grid_w;
+    grid_background_area.y2 = content_offset.y + content_offset.y + grid_h;
+
+
+    lv_draw_rect_dsc_t rect_dsc;
+    lv_draw_rect_dsc_init(&rect_dsc);
+    rect_dsc.bg_color = lv_color_black();
+    rect_dsc.bg_opa = term->cell_opacity;
+    //lv_memcpy(&rect_dsc.bg_color,color,sizeof(lv_color_t));
+
+    lv_draw_rect(layer,&rect_dsc,&grid_background_area);
+
+    LV_PROFILER_BEGIN_TAG("lv_terminal__cell_draw_loop");
 
     for (size_t row = 0; row < term->rows; row++)
     {
@@ -476,8 +509,7 @@ void draw_term(_lv_terminal_t * term, lv_layer_t * layer)
             pos.row = row;
             vterm_screen_get_cell(term->vts, pos, &cell);
 
-            fg = lv_color_make(cell.fg.rgb.red,cell.fg.rgb.blue,cell.fg.rgb.green);
-            bg = lv_color_make(cell.bg.rgb.red,cell.bg.rgb.blue,cell.bg.rgb.green);
+            fg = lv_color_make(cell.fg.rgb.red, cell.fg.rgb.blue, cell.fg.rgb.green);
             //bg = lv_color_black();
 
             lv_area_t cell_area;
@@ -491,11 +523,14 @@ void draw_term(_lv_terminal_t * term, lv_layer_t * layer)
 
             get_cell_area(term,row,col,&cell_area, &content_offset, &align_offset);
 
-            draw_cell_bg(layer, &cell_area, bg, term->cell_opacity);
+            //draw_cell_bg(layer, &cell_area, bg, term->cell_opacity);
             draw_cell_char(layer,&cell_area, cell.chars[0], term->font, fg);
         }
         //cl_flag = !cl_flag;
     }
+    LV_PROFILER_BEGIN_TAG("lv_terminal__cell_draw_loop");
+
+    LV_PROFILER_END_TAG("lv_terminal__draw_term");
 }
 
 static void draw_new(lv_event_t * e)

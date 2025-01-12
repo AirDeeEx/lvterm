@@ -53,7 +53,7 @@
 
 #if LV_USE_STDLIB_MALLOC == LV_STDLIB_BUILTIN
     /*Size of the memory available for `lv_malloc()` in bytes (>= 2kB)*/
-    #define LV_MEM_SIZE (128 * 1024U)          /*[bytes]*/
+    #define LV_MEM_SIZE (10 * 1024 * 1024U)          /*[bytes]*/
 
     /*Size of the memory expand for `lv_malloc()` in bytes*/
     #define LV_MEM_POOL_EXPAND_SIZE 0
@@ -783,13 +783,13 @@
 #endif /*LV_USE_SYSMON*/
 
 /*1: Enable the runtime performance profiler*/
-#define LV_USE_PROFILER 0
+#define LV_USE_PROFILER 1
 #if LV_USE_PROFILER
     /*1: Enable the built-in profiler*/
     #define LV_USE_PROFILER_BUILTIN 1
     #if LV_USE_PROFILER_BUILTIN
         /*Default profiler trace buffer size*/
-        #define LV_PROFILER_BUILTIN_BUF_SIZE (16 * 1024)     /*[bytes]*/
+        #define LV_PROFILER_BUILTIN_BUF_SIZE (128 * 1024)     /*[bytes]*/
     #endif
 
     /*Header to include for the profiler*/
